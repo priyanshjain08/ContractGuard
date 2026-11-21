@@ -1,0 +1,32 @@
+{
+  "name": "contractguard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "API contract intelligence & compatibility platform (core engine + CLI).",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test --tsconfig tsconfig.json \"packages/**/test/*.test.ts\"",
+    "cli": "tsx --tsconfig tsconfig.json apps/cli/src/cli.ts",
+    "test:unit": "tsx --test --tsconfig tsconfig.json \"packages/**/test/*.test.ts\"",
+    "db:generate": "pnpm --filter @contractguard/db generate",
+    "db:migrate": "pnpm --filter @contractguard/db migrate:dev",
+    "dev:api": "pnpm --filter @contractguard/api dev",
+    "dev:worker": "pnpm --filter @contractguard/worker dev",
+    "dev:web": "pnpm --filter @contractguard/web dev",
+    "e2e": "pnpm --filter @contractguard/web e2e"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.0",
+    "@types/node": "^22.0.0"
+  },
+  "packageManager": "pnpm@9.12.0"
+}

@@ -1,0 +1,2 @@
+{ "name": "@contractguard/queue", "version": "0.1.0", "private": true, "type": "module", "main": "src/index.ts",
+  "dependencies": { "bullmq": "^5.0.0", "ioredis": "^5.0.0", "@contractguard/domain": "workspace:*" } }

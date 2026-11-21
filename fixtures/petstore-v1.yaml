@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info: { title: Petstore, version: 1.0.0 }
+servers: [{ url: https://api.example.com/v1 }]
+security: [{ bearer: [] }]
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+        - { name: status, in: query, schema: { type: string, enum: [available, pending, sold] } }
+      responses:
+        '200':
+          description: A page of pets
+          headers: { X-Total-Count: { schema: { type: integer } } }
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Pet' } }
+    post:
+      operationId: createPet
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/NewPet' } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Pet' } } } }
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      parameters: [{ name: petId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: The pet, content: { application/json: { schema: { $ref: '#/components/schemas/Pet' } } } }
+        '404': { description: Not found }
+    delete:
+      operationId: deletePet
+      parameters: [{ name: petId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: Deleted } }
+  /stores:
+    get:
+      operationId: listStores
+      responses: { '200': { description: ok, content: { application/json: { schema: { type: array, items: { type: object, properties: { id: { type: string } } } } } } } }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  schemas:
+    NewPet:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 50 }
+        tag: { type: string }
+        age: { type: integer, minimum: 0 }
+    Pet:
+      type: object
+      required: [id, name, status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        tag: { type: string }
+        status: { type: string, enum: [available, pending, sold] }
+        owner:
+          type: object
+          required: [email]
+          properties: { email: { type: string, format: email }, phone: { type: string } }

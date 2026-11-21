@@ -1,0 +1,196 @@
+// UNVERIFIED: written without access to the Prisma CLI. Run `pnpm --filter @contractguard/db migrate:dev --name init`
+// to validate this schema and generate the SQL migration, then apply prisma/sql/immutability.sql.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role { OWNER ADMIN MEMBER VIEWER }
+enum Plan { FREE PRO ENTERPRISE }
+enum ComparisonStatus { QUEUED RUNNING COMPLETED FAILED }
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  memberships  Membership[]
+  sessions     Session[]
+}
+
+model Org {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  members   Membership[]
+  projects  Project[]
+}
+
+model Membership {
+  orgId     String
+  userId    String
+  role      Role
+  createdAt DateTime @default(now())
+  org       Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([orgId, userId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([expiresAt])
+}
+
+model LoginFailure {
+  id  String   @id @default(uuid())
+  key String
+  at  DateTime
+  @@index([key, at])
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  orgId       String
+  name        String
+  slug        String
+  description String?
+  createdAt   DateTime @default(now())
+  org         Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  environments Environment[]
+  versions     SpecVersion[]
+  @@unique([orgId, slug])
+}
+
+model Environment {
+  id        String   @id @default(uuid())
+  orgId     String
+  projectId String
+  name      String
+  createdAt DateTime @default(now())
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([projectId, name])
+}
+
+model SpecVersion {
+  id            String   @id @default(uuid())
+  orgId         String
+  projectId     String
+  environmentId String?
+  number        Int
+  label         String
+  checksum      String
+  sizeBytes     Int
+  title         String
+  apiVersion    String
+  openapi       String
+  content       String   @db.Text
+  source        String
+  createdBy     String
+  createdAt     DateTime @default(now())
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([projectId, number])
+  @@unique([projectId, checksum])
+  @@index([orgId, createdAt])
+}
+
+model Policy {
+  id        String   @id @default(uuid())
+  orgId     String
+  projectId String?
+  name      String
+  version   Int
+  policy    Json
+  createdBy String
+  createdAt DateTime @default(now())
+  @@index([orgId, projectId])
+}
+
+model Comparison {
+  id              String   @id @default(uuid())
+  orgId           String
+  projectId       String
+  baseVersionId   String
+  targetVersionId String
+  policyId        String?
+  status          ComparisonStatus @default(QUEUED)
+  result          String?
+  error           String?
+  engineVersion   String?
+  summary         Json?
+  report          Json?
+  requestedBy     String
+  createdAt       DateTime @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  findings        Finding[]
+  @@index([orgId, createdAt])
+  @@index([orgId, projectId])
+}
+
+model Finding {
+  id           String   @id @default(uuid())
+  comparisonId String
+  orgId        String
+  findingKey   String
+  ruleId       String
+  category     String
+  severity     String
+  outcome      String
+  method       String?
+  path         String?
+  data         Json
+  comparison   Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  @@unique([comparisonId, findingKey])
+  @@index([orgId, comparisonId, category])
+}
+
+model GithubLink {
+  id             String   @id @default(uuid())
+  orgId          String
+  projectId      String
+  installationId Int
+  repo           String
+  specPath       String
+  createdBy      String
+  createdAt      DateTime @default(now())
+  @@unique([installationId, repo])
+  @@index([orgId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  orgId      String
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  at         DateTime
+  @@index([orgId, at])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  orgId     String
+  userId    String
+  kind      String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([orgId, userId, createdAt])
+}

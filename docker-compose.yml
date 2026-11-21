@@ -1,0 +1,40 @@
+# UNVERIFIED: Docker was not available where this was written. Review before use.
+# Usage: cp .env.example .env && docker compose up --build
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: contractguard, POSTGRES_PASSWORD: contractguard, POSTGRES_DB: contractguard }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U contractguard"], interval: 5s, timeout: 3s, retries: 10 }
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 10 }
+  migrate:
+    build: { context: ., target: runtime }
+    command: sh -c "pnpm --filter @contractguard/db exec prisma migrate deploy && psql \"$$DATABASE_URL\" -f packages/db/prisma/sql/immutability.sql"
+    environment: { DATABASE_URL: "postgresql://contractguard:contractguard@postgres:5432/contractguard" }
+    depends_on: { postgres: { condition: service_healthy } }
+  api:
+    build: { context: ., target: runtime }
+    command: pnpm --filter @contractguard/api start
+    env_file: .env
+    environment: { DATABASE_URL: "postgresql://contractguard:contractguard@postgres:5432/contractguard", REDIS_URL: "redis://redis:6379" }
+    ports: ["4000:4000"]
+    depends_on: { migrate: { condition: service_completed_successfully }, redis: { condition: service_healthy } }
+  worker:
+    build: { context: ., target: runtime }
+    command: pnpm --filter @contractguard/worker start
+    env_file: .env
+    environment: { DATABASE_URL: "postgresql://contractguard:contractguard@postgres:5432/contractguard", REDIS_URL: "redis://redis:6379" }
+    depends_on: { migrate: { condition: service_completed_successfully }, redis: { condition: service_healthy } }
+  web:
+    build: { context: ., target: runtime }
+    command: sh -c "pnpm --filter @contractguard/web build && pnpm --filter @contractguard/web start"
+    env_file: .env
+    environment: { API_URL: "http://api:4000" }
+    ports: ["3000:3000"]
+    depends_on: [api]
+volumes:
+  pgdata:

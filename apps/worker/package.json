@@ -1,0 +1,6 @@
+{
+  "name": "@contractguard/worker", "version": "0.1.0", "private": true, "type": "module",
+  "scripts": { "dev": "tsx watch src/main.ts", "start": "node --import tsx src/main.ts" },
+  "dependencies": { "bullmq": "^5.0.0", "@contractguard/domain": "workspace:*", "@contractguard/db": "workspace:*", "@contractguard/queue": "workspace:*" },
+  "devDependencies": { "tsx": "^4.23.0", "typescript": "^6.0.0" }
+}

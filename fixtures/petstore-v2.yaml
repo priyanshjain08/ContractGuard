@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info: { title: Petstore, version: 2.0.0 }
+servers: [{ url: https://api.example.com/v2 }]
+security: [{ bearer: [] }]
+paths:
+  /pets:
+    get:
+      operationId: listAllPets
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: status, in: query, schema: { type: string, enum: [available, sold] } }
+        - { name: owner, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: A page of pets
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Pet' } }
+    post:
+      operationId: createPet
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/NewPet' } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Pet' } } } }
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      parameters: [{ name: petId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: The pet, content: { application/json: { schema: { $ref: '#/components/schemas/Pet' } } } }
+        '404': { description: Not found }
+  /pets/search:
+    get:
+      operationId: searchPets
+      deprecated: false
+      responses: { '200': { description: ok } }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  schemas:
+    NewPet:
+      type: object
+      required: [name, species]
+      properties:
+        name: { type: string, maxLength: 20 }
+        species: { type: string }
+        tag: { type: string }
+        age: { type: string }
+    Pet:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        status: { type: string, enum: [available, pending, sold, archived] }
+        owner:
+          type: object
+          required: [email]
+          properties: { email: { type: string, format: email } }
